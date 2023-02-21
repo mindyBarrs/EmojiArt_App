@@ -18,7 +18,7 @@ struct EmojiArtDocumentView: View {
             Spacer()
             documentBody
             Spacer()
-            palette
+            PaletteChooser(emojiFontSize: defaultEmojiFontSize)
         }
     }
     
@@ -60,10 +60,34 @@ struct EmojiArtDocumentView: View {
                 return dropEmoji(providers: providers, at: location, in: geometry)
             }
             .gesture(panGesture().simultaneously(with: pinchToZoom()))
+            .alert(item: $alertToShow) { alertToShow in
+                alertToShow.alert()
+            }
+            .onChange(of: document.backgroundImageFetchStatus) { status in
+                switch status {
+                    case .failed(let url):
+                        showBackgroundImageFetchFailedAlert(url)
+                    default :
+                        break
+                }
+            }
         }
     }
     
+    @State private var alertToShow: IdentifiableAlert?
+
+    private func showBackgroundImageFetchFailedAlert(_ url: URL) {
+        alertToShow = IdentifiableAlert(id: "Fetch Failed" + url.absoluteString, alert: {
+            Alert(
+                title: Text("Background Image Fetch"),
+                message: Text("Couldn't load image \(url)."),
+                dismissButton: .default(Text("OK"))
+            )
+        })
+    }
+    
     //MARK: - Drag & Drop
+    
     private func dropEmoji (providers: [NSItemProvider], at location: CGPoint, in geometry: GeometryProxy) -> Bool {
         var found = providers.loadObjects(ofType: URL.self) { url in
             document.setBackground(EmojiArtModel.Background.url(url.imageURL))
@@ -172,30 +196,6 @@ struct EmojiArtDocumentView: View {
             
             steadyStatePanOffSet = .zero
             steadyStateZoomScale = min(hZoom, vZoom)
-        }
-    }
-    
-    //MARK: - Pallete
-    var palette: some View {
-        ScrollingEmojiView(emojis: testEmoji)
-            .font(.system(size: defaultEmojiFontSize))
-    }
-    
-    let testEmoji = "🚕😇🐱🦄🥨🏹🚞📸❤️‍🔥🇨🇦😜🦊🦖🌮🏵🎡⛩⚖️🎁🔱🐻‍❄️🥶🤖💋👑🦚🎄🌸☃️🌊🥮"
-}
-
-
-struct ScrollingEmojiView: View {
-    let emojis: String
-    
-    var body: some View {
-        ScrollView(.horizontal) {
-            HStack {
-                ForEach(emojis.map { String($0) }, id: \.self) { emoji in
-                    Text(emoji)
-                        .onDrag{ NSItemProvider(object: emoji as NSString) }
-                }
-            }.foregroundColor(Color.white)
         }
     }
 }
