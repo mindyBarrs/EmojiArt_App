@@ -71,6 +71,9 @@ struct EmojiArtDocumentView: View {
                         break
                 }
             }
+            .onReceive(document.$backgroundImage) { image in
+                zoomToFit(image, in: geometry.size )
+            }
         }
     }
     
@@ -190,7 +193,7 @@ struct EmojiArtDocumentView: View {
     }
     
     private func zoomToFit(_ image: UIImage?, in size: CGSize) {
-        if let image = image, image.size.width > 0, image.size.height > 0, size.width > 0, size.height > 0 {
+        if let image = image, image.size.width > 0, image.size.height > 0, size.width > 0, size.height > 0  {
             let hZoom = size.width / image.size.width
             let vZoom = size.height / image.size.height
             

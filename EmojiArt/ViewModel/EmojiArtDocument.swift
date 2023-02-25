@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import Combine
 
 class EmojiArtDocument: ObservableObject {
     @Published private(set) var emojiArt: EmojiArtModel {
@@ -88,6 +89,8 @@ class EmojiArtDocument: ObservableObject {
         case failed(URL)
     }
     
+    private var backgroundImageFetchCanellable: AnyCancellable?
+    
     private func fetchBackgroundImageIfNecessary() {
          backgroundImage = nil
         
@@ -95,24 +98,19 @@ class EmojiArtDocument: ObservableObject {
             case .url(let url):
                 // fetch URL
                 backgroundImageFetchStatus = .fetching
-            
-                DispatchQueue.global(qos: .userInitiated).async {
-                    let imageData = try? Data(contentsOf: url )
-                    
-                    DispatchQueue.main.async { [weak self] in
-                        if self?.emojiArt.background == EmojiArtModel.Background.url(url) {
-                            self?.backgroundImageFetchStatus = .idle
-                            
-                            if imageData != nil {
-                                self?.backgroundImage = UIImage(data: imageData!)
-                            }
-                            
-                            if self?.backgroundImage == nil {
-                                self?.backgroundImageFetchStatus = .failed(url)
-                            }
-                        }
+                backgroundImageFetchCanellable?.cancel()
+                
+                let session = URLSession.shared
+                let publisher = session.dataTaskPublisher(for: url)
+                    .map{ (data, urlResponse) in UIImage(data: data) }
+                    .replaceError(with: nil)
+                    .receive(on: DispatchQueue.main)
+                
+                backgroundImageFetchCanellable = publisher
+                    .sink { [weak self] image in
+                        self?.backgroundImage = image
+                        self?.backgroundImageFetchStatus = (image != nil) ? .idle : .failed(url)
                     }
-                }
             case .imageData(let data):
                 backgroundImage = UIImage(data: data)
         case .blank:
