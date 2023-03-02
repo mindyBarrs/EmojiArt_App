@@ -43,13 +43,13 @@ struct PaletteEditor: View {
         withAnimation{
             palette.emojis = (emojis + palette.emojis)
                 .filter{ $0.isEmoji }
-                .withNoRepeatedCharacters
+                .removingDuplicateCharacters
         }
     }
     
     var deleteEmojiSection: some View {
         Section(header: Text("Delete Emoji(s):")) {
-            let emojis = palette.emojis.withNoRepeatedCharacters.map{String($0)}
+            let emojis = palette.emojis.removingDuplicateCharacters.map{String($0)}
             
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 40))]) {
                 ForEach(emojis, id: \.self) { emoji in
