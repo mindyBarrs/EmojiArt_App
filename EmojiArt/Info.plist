@@ -4,9 +4,15 @@
 <dict>
 	<key>UISupportsDocumentBrowser</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>The camera can be used to set the background of emiji art app.</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
+			<key>CFBundleTypeMIMETypes</key>
+			<array>
+				<string></string>
+			</array>
 			<key>CFBundleTypeName</key>
 			<string>EmojiArt</string>
 			<key>CFBundleTypeRole</key>

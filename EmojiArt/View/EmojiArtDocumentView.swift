@@ -16,35 +16,20 @@ struct EmojiArtDocumentView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            header
-            Spacer()
             documentBody
             Spacer()
             PaletteChooser(emojiFontSize: defaultEmojiFontSize)
         }
     }
-    
-    var header: some View  {
-        ZStack {
-            Text("Emoji Art App")
-                .foregroundColor(Color("PurpleColor"))
-                .font(.system(size: defaultEmojiFontSize))
-                .multilineTextAlignment(.leading)
-                .bold()
-                .padding()
-        }
-    }
-    
+
     var documentBody: some View {
         GeometryReader { geometry in
             ZStack {
                 Color("YellowColor")
-                    .overlay(
-                        OptionalImage(uiImage: document.backgroundImage)
-                            .scaleEffect(zoomScale)
-                            .position(convertFromEmojiCoordinates((0,0), in: geometry))
-                    )
-                    .gesture(doubleTapToZoom(in: geometry.size))
+                OptionalImage(uiImage: document.backgroundImage)
+                    .scaleEffect(zoomScale)
+                    .position(convertFromEmojiCoordinates((0,0), in: geometry))
+                .gesture(doubleTapToZoom(in: geometry.size))
                     
                 if document.backgroundImageFetchStatus == .fetching {
                     ProgressView().scaleEffect(2)
@@ -78,12 +63,81 @@ struct EmojiArtDocumentView: View {
                     zoomToFit(image, in: geometry.size )
                 }
             }
-            .toolbar { 
-                UndoButton(
-                    undo: undoManager?.optionalUndoMenuItemTitle,
-                    redo: undoManager?.optionalRedoMenuItemTitle
-                )
+            .navigationTitle("Emoji Art App")
+                .foregroundColor(Color("PurpleColor"))
+                .font(.system(size: 25))
+                .bold()
+                .padding()
+            .compactableToolbar {
+                    AnimatedActionButton(title: "Paste Background", systemImage: "doc.on.clipboard") {
+                        pasteBackground()
+                    }
+                
+                    if Camera.isAvailable {
+                        AnimatedActionButton(title: "Snap a Photo", systemImage: "camera.circle") {
+                            backgroundPicker = .camera
+                        }
+                    }
+                
+                    if PhotoLibrary.isAvailable {
+                        AnimatedActionButton(title: "Search Photo", systemImage: "photo.circle") {
+                            backgroundPicker = .library
+                        }
+                    }
+                   
+                    if let undoManager = undoManager {
+                        if undoManager.canUndo {
+                            AnimatedActionButton(title: undoManager.undoActionName, systemImage: "arrow.uturn.backward") {
+                                undoManager.undo()
+                            }
+                        }
+                        
+                        if undoManager.canRedo {
+                            AnimatedActionButton(title: undoManager.redoActionName, systemImage: "arrow.uturn.forward") {
+                                undoManager.redo()
+                            }
+                        }
+                    }
             }
+            .sheet(item: $backgroundPicker) { pickerType in
+                switch pickerType {
+                case .camera: Camera(handlePickedImage: { image in handlePickedBackgroundImage(image) })
+                case .library: PhotoLibrary(handlePickedImage: { image in handlePickedBackgroundImage(image) })
+                }
+            }
+        }
+    }
+    
+    private func handlePickedBackgroundImage(_ image: UIImage?) {
+        autoZoom = true
+        
+        if let imageData = image?.jpegData(compressionQuality: 1.0) {
+            document.setBackground(.imageData(imageData ), undoManager: undoManager)
+        }
+        
+        backgroundPicker = nil
+    }
+    
+    @State private var backgroundPicker: BackgroundPickerType?
+    
+    enum BackgroundPickerType: Identifiable {
+        case camera
+        case library
+        var id: BackgroundPickerType { self }
+    }
+    
+    private func pasteBackground() {
+        autoZoom = true
+        
+        if let imageData = UIPasteboard.general.image?.jpegData(compressionQuality: 1.0) {
+            document.setBackground(.imageData(imageData), undoManager: undoManager)
+        } else if let url = UIPasteboard.general.url?.imageURL {
+            document.setBackground(.url(url), undoManager: undoManager)
+        } else {
+            alertToShow = IdentifiableAlert(
+                title: "Paste Background",
+                message: "There currently isn't a image on the pasteboard."
+            )
         }
     }
     

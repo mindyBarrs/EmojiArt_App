@@ -38,16 +38,11 @@ struct PaletteManager: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Color("GreenColor"), for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .dismissable {
+                presentationMode.wrappedValue.dismiss()
+            }
             .toolbar {
                 ToolbarItem { EditButton() }
-                ToolbarItem(placement: .navigationBarLeading) {
-                    if presentationMode.wrappedValue.isPresented,
-                        UIDevice.current.userInterfaceIdiom != .pad {
-                        Button("Close") {
-                            presentationMode.wrappedValue.dismiss()
-                        }
-                    }
-                }
             }
             .environment(\.editMode, $editMode)
         }
